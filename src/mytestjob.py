@@ -38,14 +38,12 @@ def submit_event(ol_event, api_endpoint):
     run_id = "d46e465b-d358-4d32-83d4-df660ff614dd"
     producer = ol_event.ev_producer 
 
-    #print(f"namespace: {namespace} job_name: {job_name}")
     if ev_type == "START":
-        print("Submitting a START event")
         json_content = {
             "eventType": f"{ev_type}",
             "eventTime": f"{current_time}",
             "run": {
-            "runId": "d46e465b-d358-4d32-83d4-df660ff614dd"
+            "runId": "1337"
             },
             "job": {
             "namespace": f"{namespace}",
@@ -61,12 +59,11 @@ def submit_event(ol_event, api_endpoint):
         print(content)
         return requests.post(url = API_ENDPOINT, data = content, headers=head)
     elif ev_type ==  "COMPLETE":
-        print("Submitting a COMPLETE event")
         json_content = {
             "eventType": "COMPLETE",
             "eventTime": f"{current_time}",
             "run": {
-            "runId": "d46e465b-d358-4d32-83d4-df660ff614dd"
+            "runId": "1337"
             },
             "job": {
             "namespace": f"{namespace}",
@@ -90,7 +87,6 @@ def submit_event(ol_event, api_endpoint):
         }
         content = json.dumps(json_content)
         print(f"Submitted {ev_type} event. Namespace: {namespace} Job: {job_name}")
-        #print(content)
         return requests.post(url = API_ENDPOINT, data = content, headers=head)
      
     
