@@ -5,70 +5,88 @@ import sys
 
 import requests
 import datetime
-import json
-  
+import json 
 
 #API_ENDPOINT = "http://localhost:5000/api/v1/lineage"
 API_KEY = "XXXXXXXXXXXXXXXXX"
 
-      
-def submit_event(eventtype):
-    API_ENDPOINT = "http://localhost:5000/api/v1/lineage"
+class ol_event:
+    def __init__(self, eventtype, producer, entityname, jobname, namespace):
+        self.ev_type = eventtype.upper()
+        self.head = {'content-type': 'application/json'}
+        self.namespace = namespace if namespace else "" #"api"
+        self.job_name = jobname if jobname else "" #"api"
+        self.input_name = entityname if eventtype.upper() == "START" else "" #"raw-api-appevents"
+        self.output_name = entityname if eventtype.upper() == "COMPLETE" else "" #"appevent-aggregates"
+        self.run_id = "d46e465b-d358-4d32-83d4-df660ff614dd"
+        self.ev_producer = producer if producer else "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client"
+    
+    def publish():
+        print("Sending to OL")
+
+
+def submit_event(ol_event, api_endpoint):
+    API_ENDPOINT = api_endpoint
     current_time = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f+12:00")
 
     head = {'content-type': 'application/json'}
+    namespace = ol_event.namespace
+    job_name = ol_event.job_name 
+    input_name = ol_event.input_name 
+    output_name = ol_event.output_name 
+    ev_type = ol_event.ev_type
+    run_id = "d46e465b-d358-4d32-83d4-df660ff614dd"
+    producer = ol_event.ev_producer 
 
-    if eventtype == "start":
-        print("Submitting a START event")
+    if ev_type == "START":
         json_content = {
-            "eventType": "START",
+            "eventType": f"{ev_type}",
             "eventTime": f"{current_time}",
             "run": {
-            "runId": "d46e465b-d358-4d32-83d4-df660ff614dd"
+            "runId": "1337"
             },
             "job": {
-            "namespace": "my-namespace",
-            "name": "my-job"
+            "namespace": f"{namespace}",
+            "name": f"{job_name}"
             },
             "inputs": [{
-            "namespace": "my-namespace",
-            "name": "my-input"
+            "namespace": f"{namespace}",
+            "name": f"{input_name}"
             }],  
-            "producer": "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client"
+            "producer": f"{producer}"
         }    
         content = json.dumps(json_content)
         print(content)
         return requests.post(url = API_ENDPOINT, data = content, headers=head)
-    elif eventtype ==  "complete":
-        print("Submitting a COMPLETE event")
+    elif ev_type ==  "COMPLETE":
         json_content = {
             "eventType": "COMPLETE",
             "eventTime": f"{current_time}",
             "run": {
-            "runId": "d46e465b-d358-4d32-83d4-df660ff614dd"
+            "runId": "1337"
             },
             "job": {
-            "namespace": "my-namespace",
-            "name": "my-job"
+            "namespace": f"{namespace}",
+            "name": f"{job_name}"
             },
             "outputs": [{
-            "namespace": "my-namespace",
-            "name": "my-output",
+            "namespace": f"{namespace}",
+            "name": f"{output_name}",
             "facets": {
                 "schema": {
-                "_producer": "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client",
+                "_producer": f"{producer}",
                 "_schemaURL": "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/spec/OpenLineage.json#/definitions/SchemaDatasetFacet",
                 "fields": [
-                    { "name": "a", "type": "VARCHAR"},
-                    { "name": "b", "type": "VARCHAR"}
+                    { "name": "appid", "type": "VARCHAR"},
+                    { "name": "appname", "type": "VARCHAR"}
                 ]
                 }
             }
-            }],     
+            }, ],     
             "producer": "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client"
         }
         content = json.dumps(json_content)
-        print(content)
+        print(f"Submitted {ev_type} event. Namespace: {namespace} Job: {job_name}")
         return requests.post(url = API_ENDPOINT, data = content, headers=head)
      
     
@@ -76,10 +94,21 @@ def submit_event(eventtype):
     #print(r)
 
 if __name__ == '__main__':
-    r = submit_event(eventtype="start")
-    print(r)
-    r = submit_event(eventtype="complete") 
-    print(r)
+    prdc = "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client"
+    
+    startevent = ol_event(eventtype='START', producer=prdc, entityname="raw-api-appevents", jobname="enrich-api", namespace="api")
+    completeevent1 = ol_event(eventtype='COMPLETE', producer=prdc, entityname="aggregated-api-appevents", jobname="enrich-api", namespace="api")
+    completeevent2 = ol_event(eventtype='COMPLETE', producer=prdc, entityname="error-events", jobname="enrich-api", namespace="api")
+    completeevent3 = ol_event(eventtype='COMPLETE', producer=prdc, entityname="appevent-log-output", jobname="enrich-api", namespace="api")
+
+    r = submit_event(startevent, "http://localhost:5000/api/v1/lineage")
+    r = submit_event(completeevent1, "http://localhost:5000/api/v1/lineage")
+    r = submit_event(completeevent2, "http://localhost:5000/api/v1/lineage")
+    r = submit_event(completeevent3, "http://localhost:5000/api/v1/lineage")
+    
+    #r = submit_event(eventtype="complete", producer="https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client") 
+    #print(r)
+
 
 #def main():
    # args = sys.argv[1:]
@@ -87,11 +116,4 @@ if __name__ == '__main__':
     #if not args:
        # print('usage: [--flags options] [inputs] ')
        # sys.exit(1)
-    
-    
-    # extracting response text 
-    #pastebin_url = r.text
-    #print("The pastebin URL is:%s"%pastebin_url)
-
-
-# Main body
+ 
